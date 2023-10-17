@@ -1,5 +1,5 @@
 import App from 'App';
-import { useEffect } from 'react';
+import isEqual from 'lodash/isEqual';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 
 import { useAuth } from 'hooks/auth';
@@ -9,12 +9,15 @@ import { IProjectSettings, projectSettingsState } from 'state/project';
 import { settingsState } from 'state/settings';
 
 export default function AppWrapper() {
-  const [pSettings, setPSettings] = useRecoilState(projectSettingsState);
+  const [projectSettings, setProjectSettings] =
+    useRecoilState(projectSettingsState);
   const setAppSettings = useSetRecoilState(settingsState);
   const { isAuthenticated, isReady } = useAuth();
 
   const { data } = useApi<IProjectSettings>(
-    pSettings === undefined && isAuthenticated ? '/project/settings' : null
+    projectSettings === undefined && isAuthenticated
+      ? '/project/settings'
+      : null
   );
 
   if (
@@ -26,17 +29,15 @@ export default function AppWrapper() {
     window.location.href = '/login';
   }
 
-  useEffect(() => {
-    if (!data) return;
-
-    setPSettings(data);
+  if (data && !isEqual(data, projectSettings)) {
+    setProjectSettings(data);
     setAppSettings((prev) => ({
       ...prev,
       defaultCollapseContent: data.ui.default_collapse_content ?? true,
       expandAll: !!data.ui.default_expand_messages,
       hideCot: !!data.ui.hide_cot
     }));
-  }, [data, setPSettings, setAppSettings]);
+  }
 
   if (!isReady) {
     return null;

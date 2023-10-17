@@ -1,8 +1,8 @@
 import { getToken, removeToken, setToken } from 'helpers/localStorageToken';
 import jwt_decode from 'jwt-decode';
-import { useEffect } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import useSWRImmutable from 'swr/immutable';
+import { useIsFirstRender } from 'usehooks-ts';
 
 import { conversationsHistoryState } from 'state/conversations';
 import { accessTokenState, userState } from 'state/user';
@@ -18,10 +18,13 @@ export const useAuth = () => {
     headerAuth: boolean;
     oauthProviders: string[];
   }>('/auth/config', fetcher);
-  const isReady = !!(!isLoadingConfig && config);
+  const isFirstRender = useIsFirstRender();
+
   const [accessToken, setAccessToken] = useRecoilState(accessTokenState);
   const setConversationsHistory = useSetRecoilState(conversationsHistoryState);
   const [user, setUser] = useRecoilState(userState);
+
+  const isReady = !!(!isLoadingConfig && config);
 
   const logout = () => {
     setUser(null);
@@ -50,13 +53,10 @@ export const useAuth = () => {
     }
   };
 
-  useEffect(() => {
-    if (!user && getToken()) {
-      // Initialize the token from local storage
-      saveAndSetToken(getToken());
-      return;
-    }
-  }, []);
+  if (isFirstRender && !user && getToken()) {
+    // Initialize the token from local storage
+    saveAndSetToken(getToken());
+  }
 
   const isAuthenticated = !!accessToken;
 
